@@ -1,0 +1,17 @@
+[
+    {
+        "inputs": [
+            {
+                "name": "duration",
+                "type": "felt"
+            },
+            {
+                "name": "metadata",
+                "type": "felt"
+            }
+        ],
+        "name": "create_proposal",
+        "outputs": [],
+        "type": "function"
+    }
+]
