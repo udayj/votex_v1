@@ -1,5 +1,52 @@
 [
     {
+        "members": [
+            {
+                "name": "id",
+                "offset": 0,
+                "type": "felt"
+            },
+            {
+                "name": "proposer",
+                "offset": 1,
+                "type": "felt"
+            },
+            {
+                "name": "startTimestamp",
+                "offset": 2,
+                "type": "felt"
+            },
+            {
+                "name": "duration",
+                "offset": 3,
+                "type": "felt"
+            },
+            {
+                "name": "metadata",
+                "offset": 4,
+                "type": "felt"
+            },
+            {
+                "name": "count_yes",
+                "offset": 5,
+                "type": "felt"
+            },
+            {
+                "name": "count_no",
+                "offset": 6,
+                "type": "felt"
+            },
+            {
+                "name": "result",
+                "offset": 7,
+                "type": "felt"
+            }
+        ],
+        "name": "Proposal",
+        "size": 8,
+        "type": "struct"
+    },
+    {
         "inputs": [
             {
                 "name": "duration",
@@ -27,6 +74,88 @@
         ],
         "name": "vote",
         "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "id",
+                "type": "felt"
+            }
+        ],
+        "name": "finalize_voting",
+        "outputs": [],
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "id",
+                "type": "felt"
+            }
+        ],
+        "name": "get_result",
+        "outputs": [
+            {
+                "name": "res",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "id",
+                "type": "felt"
+            }
+        ],
+        "name": "get_proposal",
+        "outputs": [
+            {
+                "name": "res",
+                "type": "Proposal"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "get_proposal_id",
+        "outputs": [
+            {
+                "name": "res",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "id",
+                "type": "felt"
+            }
+        ],
+        "name": "get_proposal_status",
+        "outputs": [
+            {
+                "name": "count_yes",
+                "type": "felt"
+            },
+            {
+                "name": "count_no",
+                "type": "felt"
+            },
+            {
+                "name": "result",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     }
 ]

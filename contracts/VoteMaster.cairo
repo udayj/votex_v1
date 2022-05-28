@@ -12,6 +12,8 @@ from starkware.cairo.common.math import (
     abs_value
 )
 
+from starkware.cairo.common.math_cmp import is_le
+
 struct Proposal:
 
     member id: felt
@@ -68,14 +70,6 @@ func create_proposal{syscall_ptr : felt*,
     return()
 end
 
-#vote
-#finalise vote
-#get result
-#get proposal
-#get proposal status
-#get proposal id
-#get vote history
-
 @external
 func vote{syscall_ptr : felt*, 
         pedersen_ptr : HashBuiltin*, 
@@ -85,11 +79,7 @@ func vote{syscall_ptr : felt*,
         let (voter) = get_caller_address()
         let (prev_vote) = vote_history.read(id,voter)
         let (prev_vote_weightage) = vote_weightage_history.read(id,voter)
-        # if prev_vote = 0, prev_vote_weightage=10 write
-        # if prev_vote ==current vote, return
-        # if prev_vote !=current vote, update proposal
-        # update vote_history, current weightage = prev wt -1, update wt history
-
+        
         let (current_timestamp) = get_block_timestamp()
 
         with_attr error_message("Voting phase over"):
@@ -103,6 +93,8 @@ func vote{syscall_ptr : felt*,
         if prev_vote == current_vote:
             return()
         end
+
+        # these multipliers are mutually exclusive i.e. only 1 of them will have value of 1
         tempvar yes_multiplier = (current_vote + 1)/2
         tempvar no_multiplier:felt  = ((current_vote - 1)*(current_vote-1))/4
         if prev_vote == 0:
@@ -122,6 +114,8 @@ func vote{syscall_ptr : felt*,
             vote_weightage_history.write(id,voter,10)
             return()
         else:
+
+            # in the case that vote was changed, prev vote has to be subtracted and new vote added (with reduced weightage)
             assert_lt(1,prev_vote_weightage)
             let new_weightage=prev_vote_weightage-1
             let new_proposal:Proposal = Proposal(
@@ -141,6 +135,119 @@ func vote{syscall_ptr : felt*,
         end
 
 end
+
+@external
+func finalize_voting{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}(id:felt):
+
+    alloc_locals    
+    assert_only_owner(id)
+    let (local current_proposal) = proposal.read(id)
+    let (local current_timestamp) = get_block_timestamp()
+    with_attr error_message("Voting phase not over yet"):
+            assert_lt(current_proposal.startTimestamp+current_proposal.duration,current_timestamp)
+    end
+
+    let yes_le_no:felt = is_le(current_proposal.count_yes, current_proposal.count_no)
+    if yes_le_no==0:
+        update_result(id,1)
+        return()
+    else:
+
+        if current_proposal.count_yes == current_proposal.count_no:
+            update_result(id,3)
+            return()
+        else:
+            update_result(id,-1)
+            return()
+        end
+    end
+
+    
+end
+
+
+@view
+func get_result{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}(id:felt) -> (res:felt):
+
+    let (current_proposal) = proposal.read(id)
+    let result = current_proposal.result
+
+    return(result)
+end
+
+@view
+func get_proposal{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}(id:felt) -> (res:Proposal):
+
+    
+    let (current_proposal)=proposal.read(id)
+    return (current_proposal)
+end
+
+
+@view
+func get_proposal_id{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}() -> (res:felt):
+
+    let (current_id) = proposal_id.read()
+    return (current_id)
+end
+
+@view
+func get_proposal_status{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}(id:felt) -> (count_yes:felt, count_no:felt, result:felt):
+
+    let (current_proposal)=proposal.read(id)
+
+    let count_yes = current_proposal.count_yes
+    let count_no = current_proposal.count_no
+    let result = current_proposal.result
+
+    return (count_yes, count_no, result)
+end
+    
+
+
+func update_result{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}(id:felt,result:felt):
+    
+    let (current_proposal) = proposal.read(id)
+    let new_proposal:Proposal = Proposal(
+                            id=current_proposal.id,
+                            proposer=current_proposal.proposer,
+                            startTimestamp=current_proposal.startTimestamp,
+                            duration=current_proposal.duration,
+                            metadata=current_proposal.metadata,
+                            count_yes=current_proposal.count_yes,
+                            count_no=current_proposal.count_no,
+                            result=result
+                            )
+    proposal.write(id,new_proposal)
+    return()
+end
+
+func assert_only_owner{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}(id:felt):
+    
+    let (caller) = get_caller_address()
+    let (current_proposal) = proposal.read(id)
+    with_attr error_message("Not owner"):
+        
+        assert caller = current_proposal.proposer
+    end
+    return()
+end
+
+
 
 
 
