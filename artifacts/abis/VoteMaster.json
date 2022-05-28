@@ -13,5 +13,20 @@
         "name": "create_proposal",
         "outputs": [],
         "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "name": "id",
+                "type": "felt"
+            },
+            {
+                "name": "current_vote",
+                "type": "felt"
+            }
+        ],
+        "name": "vote",
+        "outputs": [],
+        "type": "function"
     }
 ]
