@@ -9,7 +9,8 @@ from starkware.starknet.common.syscalls import (
 from starkware.cairo.common.math import (
 
     assert_lt,
-    abs_value
+    abs_value,
+    assert_le
 )
 
 from starkware.cairo.common.math_cmp import is_le
@@ -75,6 +76,8 @@ func vote{syscall_ptr : felt*,
         pedersen_ptr : HashBuiltin*, 
         range_check_ptr}(id:felt, current_vote:felt):
 
+
+        assert_valid_id(id)
         let (current_proposal) = proposal.read(id)
         let (voter) = get_caller_address()
         let (prev_vote) = vote_history.read(id,voter)
@@ -95,8 +98,17 @@ func vote{syscall_ptr : felt*,
         end
 
         # these multipliers are mutually exclusive i.e. only 1 of them will have value of 1
-        tempvar yes_multiplier = (current_vote + 1)/2
-        tempvar no_multiplier:felt  = ((current_vote - 1)*(current_vote-1))/4
+        tempvar yes_multiplier
+        tempvar no_multiplier
+
+        if current_vote==1:
+            yes_multiplier=1
+            no_multiplier=0
+        else:
+            yes_multiplier=0
+            no_multiplier=1
+        end
+        
         if prev_vote == 0:
 
             let new_proposal:Proposal = Proposal(
@@ -116,6 +128,7 @@ func vote{syscall_ptr : felt*,
         else:
 
             # in the case that vote was changed, prev vote has to be subtracted and new vote added (with reduced weightage)
+            # the following assertion checks that vote weightage will be atleast 1 after reduction
             assert_lt(1,prev_vote_weightage)
             let new_weightage=prev_vote_weightage-1
             let new_proposal:Proposal = Proposal(
@@ -126,7 +139,7 @@ func vote{syscall_ptr : felt*,
                             metadata=current_proposal.metadata,
                             count_yes=current_proposal.count_yes+yes_multiplier*new_weightage-no_multiplier*prev_vote_weightage,
                             count_no=current_proposal.count_no+no_multiplier*new_weightage-yes_multiplier*prev_vote_weightage,
-                            result=0
+                            result=current_proposal.result
                             )
             proposal.write(id,new_proposal)
             vote_history.write(id,voter,current_vote)
@@ -143,6 +156,7 @@ func finalize_voting{syscall_ptr : felt*,
 
     alloc_locals    
     assert_only_owner(id)
+    assert_valid_id(id)
     let (local current_proposal) = proposal.read(id)
     let (local current_timestamp) = get_block_timestamp()
     with_attr error_message("Voting phase not over yet"):
@@ -159,7 +173,7 @@ func finalize_voting{syscall_ptr : felt*,
             update_result(id,3)
             return()
         else:
-            update_result(id,-1)
+            update_result(id,2)
             return()
         end
     end
@@ -213,7 +227,14 @@ func get_proposal_status{syscall_ptr : felt*,
     return (count_yes, count_no, result)
 end
     
+@view
+func testing_utility{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}() -> (timestamp:felt, res_neg:felt):
 
+    let (current_timestamp)=get_block_timestamp()
+    return (current_timestamp,-1)
+end
 
 func update_result{syscall_ptr : felt*, 
         pedersen_ptr : HashBuiltin*, 
@@ -246,6 +267,18 @@ func assert_only_owner{syscall_ptr : felt*,
     end
     return()
 end
+
+func assert_valid_id{syscall_ptr : felt*, 
+        pedersen_ptr : HashBuiltin*, 
+        range_check_ptr}(id:felt):
+
+    let (current_id) = proposal_id.read()
+
+    assert_le(id,current_id)
+    return()
+end
+
+
 
 
 

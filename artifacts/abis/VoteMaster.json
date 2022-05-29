@@ -157,5 +157,21 @@
         ],
         "stateMutability": "view",
         "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "testing_utility",
+        "outputs": [
+            {
+                "name": "timestamp",
+                "type": "felt"
+            },
+            {
+                "name": "res_neg",
+                "type": "felt"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
     }
 ]
