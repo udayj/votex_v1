@@ -44,7 +44,10 @@ end
 func vote_weightage_history(id:felt, voter:felt) -> (prev_vote_weightage:felt):
 end
 
-
+# this is the function which starts a voting process/proposal
+# the caller becomes the owner/proposer who can call finalize_voting to calculate the result
+# duration is in seconds from current blocktimestamp
+# metadata is unused as of now but can be used later to hold arbitrary data related to the proposal (with felt*)
 @external
 func create_proposal{syscall_ptr : felt*, 
         pedersen_ptr : HashBuiltin*, 
@@ -71,6 +74,12 @@ func create_proposal{syscall_ptr : felt*,
     return()
 end
 
+
+# this is the function which calculates the vote weightage
+# vote weightage is what gets added to the vote tally and it can depend on any on-chain input
+# currently this function just uses previous vote weightage, previous vote and current vote
+# vote weightage starts at 10 (so total number of votes can be divided by 10 to get actual votes)
+# this function could call a user supplied function in an external contract to calculate the vote weightage
 @external
 func vote{syscall_ptr : felt*, 
         pedersen_ptr : HashBuiltin*, 
@@ -108,7 +117,7 @@ func vote{syscall_ptr : felt*,
             yes_multiplier=0
             no_multiplier=1
         end
-        
+
         if prev_vote == 0:
 
             let new_proposal:Proposal = Proposal(
@@ -149,6 +158,8 @@ func vote{syscall_ptr : felt*,
 
 end
 
+# callable only by initial proposer/owner of the proposal
+# can only be called and executed if voting phase, as determined by duration, is over
 @external
 func finalize_voting{syscall_ptr : felt*, 
         pedersen_ptr : HashBuiltin*, 
@@ -226,15 +237,6 @@ func get_proposal_status{syscall_ptr : felt*,
 
     return (count_yes, count_no, result)
 end
-    
-@view
-func testing_utility{syscall_ptr : felt*, 
-        pedersen_ptr : HashBuiltin*, 
-        range_check_ptr}() -> (timestamp:felt, res_neg:felt):
-
-    let (current_timestamp)=get_block_timestamp()
-    return (current_timestamp,-1)
-end
 
 func update_result{syscall_ptr : felt*, 
         pedersen_ptr : HashBuiltin*, 
@@ -277,10 +279,3 @@ func assert_valid_id{syscall_ptr : felt*,
     assert_le(id,current_id)
     return()
 end
-
-
-
-
-
-
-
